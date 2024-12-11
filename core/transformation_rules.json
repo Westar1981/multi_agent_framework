@@ -1,0 +1,122 @@
+[
+    {
+        "source_format": "neural",
+        "target_format": "symbolic",
+        "pattern": "learned_rule_(\\d+)",
+        "template": "rule_{}",
+        "bidirectional": true,
+        "priority": 10
+    },
+    {
+        "source_format": "neural",
+        "target_format": "symbolic",
+        "pattern": "embedding_(\\d+)",
+        "template": "vector_{}",
+        "bidirectional": true,
+        "priority": 9
+    },
+    {
+        "source_format": "neural",
+        "target_format": "symbolic",
+        "pattern": "confidence_(\\w+)",
+        "template": "certainty_{}",
+        "bidirectional": true,
+        "priority": 8
+    },
+    {
+        "source_format": "symbolic",
+        "target_format": "neural",
+        "pattern": "fact_(\\w+)",
+        "template": "knowledge_{}",
+        "bidirectional": true,
+        "priority": 7
+    },
+    {
+        "source_format": "symbolic",
+        "target_format": "meta",
+        "pattern": "rule_(\\w+)",
+        "template": "pattern_{}",
+        "bidirectional": true,
+        "priority": 6
+    },
+    {
+        "source_format": "meta",
+        "target_format": "neural",
+        "pattern": "pattern_(\\w+)",
+        "template": "learned_pattern_{}",
+        "bidirectional": true,
+        "priority": 5
+    },
+    {
+        "source_format": "neural",
+        "target_format": "symbolic",
+        "pattern": "weight_(\\w+)",
+        "template": "importance_{}",
+        "bidirectional": true,
+        "priority": 4
+    },
+    {
+        "source_format": "symbolic",
+        "target_format": "meta",
+        "pattern": "predicate_(\\w+)",
+        "template": "concept_{}",
+        "bidirectional": true,
+        "priority": 3
+    },
+    {
+        "source_format": "meta",
+        "target_format": "neural",
+        "pattern": "strategy_(\\w+)",
+        "template": "policy_{}",
+        "bidirectional": true,
+        "priority": 2
+    },
+    {
+        "source_format": "neural",
+        "target_format": "symbolic",
+        "pattern": "layer_(\\d+)",
+        "template": "level_{}",
+        "bidirectional": true,
+        "priority": 1
+    },
+    {
+        "source_format": "neural",
+        "target_format": "symbolic",
+        "pattern": "X\\s*->\\s*Y",
+        "template": "implies(X, Y)",
+        "bidirectional": true,
+        "priority": 10
+    },
+    {
+        "source_format": "symbolic",
+        "target_format": "neural",
+        "pattern": "and\\((.*?),\\s*(.*?)\\)",
+        "template": "{} & {}",
+        "bidirectional": true,
+        "priority": 9
+    },
+    {
+        "source_format": "symbolic",
+        "target_format": "neural",
+        "pattern": "or\\((.*?),\\s*(.*?)\\)",
+        "template": "{} | {}",
+        "bidirectional": true,
+        "priority": 8
+    },
+    {
+        "source_format": "meta",
+        "target_format": "symbolic",
+        "pattern": "sequence\\((.*?)\\)",
+        "template": "chain({})",
+        "bidirectional": true,
+        "priority": 7
+    },
+    {
+        "source_format": "neural",
+        "target_format": "meta",
+        "pattern": "embedding\\[(.+?)\\]",
+        "template": "vector({})",
+        "bidirectional": true,
+        "priority": 6
+    }
+] 

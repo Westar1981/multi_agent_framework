@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neural-Symbolic Knowledge Tree</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #knowledge-tree {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .node:hover {
+            filter: brightness(1.2);
+        }
+        
+        .node-label {
+            font-size: 12px;
+            fill: #fff;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        
+        .connection {
+            stroke-width: 1;
+            stroke-opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+        
+        .connection.active {
+            stroke-opacity: 1;
+            stroke-width: 2;
+            filter: brightness(1.2);
+        }
+        
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+        }
+        
+        .binary-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.1;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <svg id="knowledge-tree"></svg>
+    <div class="binary-ring"></div>
+    
+    <script>
+        class KnowledgeTreeRenderer {
+            constructor(containerId) {
+                this.svg = d3.select(`#${containerId}`);
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                
+                this.svg
+                    .attr('width', this.width)
+                    .attr('height', this.height);
+                    
+                this.simulation = d3.forceSimulation()
+                    .force('link', d3.forceLink().id(d => d.id))
+                    .force('charge', d3.forceManyBody().strength(-100))
+                    .force('center', d3.forceCenter(this.width / 2, this.height / 2));
+                    
+                this.tooltip = d3.select('body')
+                    .append('div')
+                    .attr('class', 'tooltip')
+                    .style('opacity', 0);
+                    
+                // Create binary data ring
+                this.createBinaryRing();
+            }
+            
+            createBinaryRing() {
+                const ring = d3.select('.binary-ring');
+                const binaryData = Array(1000).fill(0)
+                    .map(() => Math.random() > 0.5 ? '1' : '0');
+                    
+                const radius = Math.min(this.width, this.height) * 0.4;
+                const angleStep = (2 * Math.PI) / binaryData.length;
+                
+                binaryData.forEach((bit, i) => {
+                    const angle = i * angleStep;
+                    const x = this.width/2 + radius * Math.cos(angle);
+                    const y = this.height/2 + radius * Math.sin(angle);
+                    
+                    ring.append('div')
+                        .style('position', 'absolute')
+                        .style('left', `${x}px`)
+                        .style('top', `${y}px`)
+                        .style('color', '#fff')
+                        .style('font-size', '8px')
+                        .text(bit);
+                });
+            }
+            
+            update(data) {
+                // Update nodes
+                const nodes = this.svg.selectAll('.node')
+                    .data(data.nodes, d => d.id);
+                    
+                const nodesEnter = nodes.enter()
+                    .append('g')
+                    .attr('class', 'node')
+                    .call(d3.drag()
+                        .on('start', this.dragStarted.bind(this))
+                        .on('drag', this.dragged.bind(this))
+                        .on('end', this.dragEnded.bind(this)));
+                        
+                nodesEnter.append('circle')
+                    .attr('r', d => d.size * 10)
+                    .style('fill', d => d.color);
+                    
+                nodesEnter.append('text')
+                    .attr('class', 'node-label')
+                    .attr('dy', '.35em')
+                    .text(d => d.id);
+                    
+                // Update connections
+                const links = this.svg.selectAll('.connection')
+                    .data(data.connections, d => `${d.source}-${d.target}`);
+                    
+                links.enter()
+                    .append('line')
+                    .attr('class', d => `connection ${d.active ? 'active' : ''}`)
+                    .style('stroke', '#fff')
+                    .style('stroke-width', d => d.width);
+                    
+                // Update simulation
+                this.simulation
+                    .nodes(data.nodes)
+                    .on('tick', () => {
+                        this.svg.selectAll('.connection')
+                            .attr('x1', d => d.source.x)
+                            .attr('y1', d => d.source.y)
+                            .attr('x2', d => d.target.x)
+                            .attr('y2', d => d.target.y);
+                            
+                        this.svg.selectAll('.node')
+                            .attr('transform', d => `translate(${d.x},${d.y})`);
+                    });
+                    
+                this.simulation.force('link')
+                    .links(data.connections);
+                    
+                this.simulation.alpha(1).restart();
+            }
+            
+            dragStarted(event, d) {
+                if (!event.active) this.simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            
+            dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            
+            dragEnded(event, d) {
+                if (!event.active) this.simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+            
+            showTooltip(d) {
+                const metrics = d.metrics;
+                const html = `
+                    <div>
+                        <strong>${d.id}</strong><br>
+                        Type: ${d.type}<br>
+                        Confidence: ${(metrics.confidence * 100).toFixed(1)}%<br>
+                        Uses: ${metrics.usage_count}
+                    </div>
+                `;
+                
+                this.tooltip
+                    .html(html)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px')
+                    .transition()
+                    .duration(200)
+                    .style('opacity', .9);
+            }
+            
+            hideTooltip() {
+                this.tooltip
+                    .transition()
+                    .duration(500)
+                    .style('opacity', 0);
+            }
+        }
+        
+        // Initialize renderer
+        const renderer = new KnowledgeTreeRenderer('knowledge-tree');
+        
+        // Example: Update with new data every 5 seconds
+        function updateDemo() {
+            const demoData = {
+                nodes: [
+                    {id: 'root', type: 'root', color: '#FFFFFF', size: 1.5, metrics: {confidence: 1, usage_count: 100}},
+                    {id: 'symbolic1', type: 'symbolic', color: '#FFB347', size: 1.2, metrics: {confidence: 0.8, usage_count: 50}},
+                    {id: 'neural1', type: 'neural', color: '#98FB98', size: 1.0, metrics: {confidence: 0.7, usage_count: 30}},
+                    {id: 'hybrid1', type: 'hybrid', color: '#87CEEB', size: 1.1, metrics: {confidence: 0.9, usage_count: 40}}
+                ],
+                connections: [
+                    {source: 'root', target: 'symbolic1', active: true, width: 2},
+                    {source: 'root', target: 'neural1', active: false, width: 1},
+                    {source: 'symbolic1', target: 'hybrid1', active: true, width: 2}
+                ]
+            };
+            
+            renderer.update(demoData);
+        }
+        
+        // Initial update
+        updateDemo();
+        
+        // Connect to WebSocket for real-time updates
+        const ws = new WebSocket('ws://localhost:8765/knowledge-tree');
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            renderer.update(data);
+        };
+    </script>
+</body>
+</html> 

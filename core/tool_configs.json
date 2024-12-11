@@ -1,0 +1,83 @@
+{
+    "tool_categories": {
+        "file_operations": {
+            "description": "Tools for file system operations",
+            "required_permissions": ["file_access"],
+            "rate_limit": 100,
+            "concurrent_limit": 5
+        },
+        "code_analysis": {
+            "description": "Tools for analyzing code",
+            "required_permissions": ["code_access"],
+            "rate_limit": 50,
+            "concurrent_limit": 3
+        },
+        "network_operations": {
+            "description": "Tools for network operations",
+            "required_permissions": ["network_access"],
+            "rate_limit": 20,
+            "concurrent_limit": 2
+        }
+    },
+    "default_tools": {
+        "file_reader": {
+            "category": "file_operations",
+            "description": "Read file contents",
+            "parameters": {
+                "path": "string",
+                "start_line": "integer",
+                "end_line": "integer"
+            },
+            "required_permissions": ["file_access"],
+            "timeout": 5.0
+        },
+        "code_search": {
+            "category": "code_analysis",
+            "description": "Search code using semantic queries",
+            "parameters": {
+                "query": "string",
+                "scope": "array",
+                "max_results": "integer"
+            },
+            "required_permissions": ["code_access"],
+            "timeout": 10.0
+        },
+        "file_edit": {
+            "category": "file_operations",
+            "description": "Edit file contents",
+            "parameters": {
+                "path": "string",
+                "changes": "array",
+                "backup": "boolean"
+            },
+            "required_permissions": ["file_access", "write_access"],
+            "timeout": 5.0
+        }
+    },
+    "optimization_rules": {
+        "batching": {
+            "min_frequency": 100,
+            "batch_size": 10,
+            "cooldown": 1.0
+        },
+        "caching": {
+            "max_cache_size": 1000,
+            "ttl": 300,
+            "min_hits": 5
+        },
+        "rate_limiting": {
+            "default_limit": 100,
+            "window_size": 60,
+            "burst_size": 10
+        }
+    },
+    "monitoring": {
+        "metrics_enabled": true,
+        "log_level": "INFO",
+        "performance_thresholds": {
+            "latency_warning": 1.0,
+            "error_rate_threshold": 0.1,
+            "memory_warning": 0.8
+        }
+    }
+} 

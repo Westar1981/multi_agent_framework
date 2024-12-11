@@ -1,0 +1,23 @@
+{
+    "general": "Analyze system performance and suggest improvements based on current metrics and patterns.",
+    
+    "deep_analysis": "Perform comprehensive system analysis considering:\n- {num_patterns} detected patterns\n- {num_metrics} tracked metrics\n- Historical data spanning {history_length} states\n\nFocus on:\n1. Performance trends and anomalies\n2. Resource utilization patterns\n3. Error rate analysis\n4. Agent interaction efficiency\n\nProvide specific, actionable recommendations.",
+    
+    "bottleneck_analysis": "Analyze system bottlenecks with focus on:\n- Processing load distribution: {load_distribution}\n- Memory usage patterns: {memory_patterns}\n- I/O and communication delays\n- Resource contention points\n\nIdentify critical bottlenecks and suggest mitigation strategies.",
+    
+    "error_analysis": "Investigate error patterns considering:\n- Error rates by component: {error_rates}\n- Error correlations and cascading effects\n- Recovery mechanisms effectiveness\n- Error prevention opportunities\n\nProvide recommendations for improving system reliability.",
+    
+    "optimization": "Suggest optimization strategies based on:\n- Current performance metrics: {performance_metrics}\n- Resource utilization: {resource_metrics}\n- Detected patterns: {pattern_summary}\n\nPrioritize improvements by impact and implementation effort.",
+    
+    "health_check": "Evaluate system health considering:\n- Overall health score: {health_score}\n- Component status: {component_status}\n- Recent changes and trends\n- Known issues and mitigations\n\nProvide health assessment and maintenance recommendations.",
+    
+    "pattern_analysis": "Analyze detected patterns:\n- Trend patterns: {trend_patterns}\n- Cyclic behaviors: {cyclic_patterns}\n- Anomalies: {anomaly_patterns}\n- Correlations: {correlation_patterns}\n\nExplain pattern significance and implications for system behavior.",
+    
+    "resource_analysis": "Evaluate resource utilization:\n- CPU usage patterns: {cpu_patterns}\n- Memory usage trends: {memory_trends}\n- I/O utilization: {io_patterns}\n- Resource efficiency metrics: {efficiency_metrics}\n\nIdentify opportunities for resource optimization.",
+    
+    "agent_interaction": "Analyze agent interaction patterns:\n- Communication patterns: {communication_patterns}\n- Collaboration efficiency: {collaboration_metrics}\n- Coordination overhead: {coordination_metrics}\n- Integration points: {integration_metrics}\n\nSuggest improvements for agent collaboration.",
+    
+    "knowledge_analysis": "Evaluate knowledge management:\n- Knowledge distribution: {knowledge_distribution}\n- Learning effectiveness: {learning_metrics}\n- Knowledge sharing patterns: {sharing_patterns}\n- Knowledge gaps: {knowledge_gaps}\n\nRecommend knowledge management improvements.",
+    
+    "performance_prediction": "Predict future performance based on:\n- Historical trends: {historical_trends}\n- Seasonal patterns: {seasonal_patterns}\n- Growth indicators: {growth_metrics}\n- Known upcoming changes: {planned_changes}\n\nProvide performance forecasts and preventive recommendations."
+} 

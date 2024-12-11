@@ -1,0 +1,42 @@
+{
+    "allocation": {
+        "workload_threshold": 0.8,
+        "performance_weight": 0.3,
+        "workload_weight": 0.7,
+        "min_performance_history": 5,
+        "max_performance_history": 100,
+        "performance_decay_factor": 5
+    },
+    "optimization": {
+        "reallocation_trigger_threshold": 0.8,
+        "reallocation_batch_size": 0.5,
+        "min_task_progress_for_reallocation": 0.2,
+        "max_concurrent_reallocations": 5
+    },
+    "scheduling": {
+        "priority_levels": {
+            "CRITICAL": 4,
+            "HIGH": 3,
+            "MEDIUM": 2,
+            "LOW": 1
+        },
+        "priority_decay_rate": 0.1,
+        "deadline_urgency_threshold": 3600,
+        "max_retry_attempts": 3
+    },
+    "performance": {
+        "on_time_completion_score": 1.0,
+        "late_completion_score": 0.5,
+        "default_completion_score": 0.8,
+        "min_acceptable_score": 0.3
+    },
+    "monitoring": {
+        "metrics_window_size": 100,
+        "update_interval": 60,
+        "alert_thresholds": {
+            "high_workload": 0.9,
+            "low_performance": 0.4,
+            "deadline_risk": 0.7
+        }
+    }
+} 

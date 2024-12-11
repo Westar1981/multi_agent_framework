@@ -1,0 +1,47 @@
+{
+    "experience_management": {
+        "max_experiences_per_agent": 1000,
+        "experience_ttl_hours": 72,
+        "min_samples_for_recommendation": 3,
+        "max_cluster_size": 5
+    },
+    "similarity_metrics": {
+        "capability_weight": 0.7,
+        "task_weight": 0.3,
+        "experience_similarity_threshold": 0.6,
+        "agent_similarity_threshold": 0.6,
+        "task_clustering_threshold": 0.8
+    },
+    "learning_parameters": {
+        "base_learning_rate": 0.1,
+        "min_learning_rate": 0.01,
+        "max_learning_rate": 0.5,
+        "learning_rate_decay": 0.95,
+        "learning_rate_growth": 1.05,
+        "base_exploration_rate": 0.2,
+        "min_exploration_rate": 0.1,
+        "exploration_decay": 0.99
+    },
+    "performance_thresholds": {
+        "success_threshold": 0.8,
+        "improvement_threshold": 0.7,
+        "expertise_threshold": 0.7,
+        "performance_window_size": 10
+    },
+    "recommendation_weights": {
+        "similarity_weight": 0.4,
+        "recency_weight": 0.3,
+        "outcome_weight": 0.3,
+        "recency_decay_hours": 24
+    },
+    "monitoring": {
+        "metrics_window_size": 100,
+        "update_interval": 60,
+        "cleanup_interval": 3600,
+        "alert_thresholds": {
+            "low_success_rate": 0.5,
+            "high_exploration": 0.3,
+            "learning_stagnation": 0.1
+        }
+    }
+} 

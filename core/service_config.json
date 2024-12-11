@@ -1,0 +1,189 @@
+{
+    "service_discovery": {
+        "redis_host": "localhost",
+        "redis_port": 6379,
+        "redis_db": 0,
+        "ttl": 300
+    },
+    "message_broker": {
+        "rabbitmq_host": "localhost",
+        "rabbitmq_port": 5672,
+        "rabbitmq_user": "guest",
+        "rabbitmq_password": "guest",
+        "exchanges": {
+            "agent_events": {
+                "type": "topic",
+                "durable": true
+            },
+            "system_events": {
+                "type": "fanout",
+                "durable": true
+            }
+        }
+    },
+    "load_balancing": {
+        "strategies": ["least_loaded", "round_robin", "fastest_response"],
+        "default_strategy": "least_loaded",
+        "health_check_interval": 30,
+        "circuit_breaker": {
+            "error_threshold": 0.5,
+            "recovery_threshold": 0.1,
+            "reset_timeout": 300
+        }
+    },
+    "caching": {
+        "default_ttl": 300,
+        "max_memory": "512mb",
+        "eviction_policy": "allkeys-lru"
+    },
+    "services": {
+        "neural_symbolic_agent": {
+            "type": "agent",
+            "max_instances": 5,
+            "min_instances": 1,
+            "auto_scale": true,
+            "scale_rules": {
+                "cpu_threshold": 80,
+                "memory_threshold": 85,
+                "request_rate_threshold": 100
+            },
+            "dependencies": [],
+            "health_check": {
+                "endpoint": "/health",
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3
+            }
+        },
+        "prolog_reasoner": {
+            "type": "agent",
+            "max_instances": 3,
+            "min_instances": 1,
+            "auto_scale": true,
+            "scale_rules": {
+                "cpu_threshold": 75,
+                "memory_threshold": 80,
+                "request_rate_threshold": 50
+            },
+            "dependencies": [],
+            "health_check": {
+                "endpoint": "/health",
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3
+            }
+        },
+        "meta_reasoner": {
+            "type": "agent",
+            "max_instances": 2,
+            "min_instances": 1,
+            "auto_scale": true,
+            "scale_rules": {
+                "cpu_threshold": 70,
+                "memory_threshold": 75,
+                "request_rate_threshold": 30
+            },
+            "dependencies": ["prolog_reasoner"],
+            "health_check": {
+                "endpoint": "/health",
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3
+            }
+        },
+        "learner_agent": {
+            "type": "agent",
+            "max_instances": 3,
+            "min_instances": 1,
+            "auto_scale": true,
+            "scale_rules": {
+                "cpu_threshold": 80,
+                "memory_threshold": 85,
+                "request_rate_threshold": 50
+            },
+            "dependencies": ["neural_symbolic_agent"],
+            "health_check": {
+                "endpoint": "/health",
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3
+            }
+        },
+        "code_analyzer": {
+            "type": "service",
+            "max_instances": 5,
+            "min_instances": 1,
+            "auto_scale": true,
+            "scale_rules": {
+                "cpu_threshold": 75,
+                "memory_threshold": 80,
+                "request_rate_threshold": 100
+            },
+            "dependencies": [],
+            "health_check": {
+                "endpoint": "/health",
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3
+            }
+        },
+        "code_generator": {
+            "type": "service",
+            "max_instances": 3,
+            "min_instances": 1,
+            "auto_scale": true,
+            "scale_rules": {
+                "cpu_threshold": 80,
+                "memory_threshold": 85,
+                "request_rate_threshold": 50
+            },
+            "dependencies": ["code_analyzer"],
+            "health_check": {
+                "endpoint": "/health",
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3
+            }
+        }
+    },
+    "monitoring": {
+        "metrics_collection_interval": 60,
+        "metrics_retention_days": 7,
+        "alert_thresholds": {
+            "error_rate": 0.1,
+            "latency_p95": 1000,
+            "memory_usage": 90,
+            "cpu_usage": 85
+        }
+    },
+    "security": {
+        "authentication": {
+            "enabled": true,
+            "token_expiry": 3600,
+            "refresh_token_expiry": 86400
+        },
+        "authorization": {
+            "enabled": true,
+            "default_role": "service",
+            "roles": {
+                "admin": ["*"],
+                "service": ["read", "write"],
+                "monitor": ["read"]
+            }
+        },
+        "encryption": {
+            "enabled": true,
+            "algorithm": "AES-256-GCM"
+        }
+    },
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "handlers": ["console", "file"],
+        "file": {
+            "path": "logs/service_manager.log",
+            "max_size": "100MB",
+            "backup_count": 10
+        }
+    }
+} 

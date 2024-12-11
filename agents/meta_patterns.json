@@ -1,0 +1,152 @@
+[
+    {
+        "name": "memory_optimization",
+        "description": "Optimize memory usage when high memory consumption is detected",
+        "conditions": [
+            "state['memory_usage'] > 0.8",
+            "state.get('optimization_count', 0) < 5"
+        ],
+        "actions": [
+            "optimize_memory",
+            "clear_cache"
+        ],
+        "success_rate": 0.95,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "processing_optimization",
+        "description": "Optimize processing efficiency when high latency is detected",
+        "conditions": [
+            "state['processing_time'] > 0.9",
+            "state.get('optimization_count', 0) < 5"
+        ],
+        "actions": [
+            "optimize_processing",
+            "adjust_batch_size"
+        ],
+        "success_rate": 0.9,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "accuracy_optimization",
+        "description": "Optimize model accuracy when high error rate is detected",
+        "conditions": [
+            "state.get('error_rate', 0) > 0.1",
+            "state.get('optimization_count', 0) < 5"
+        ],
+        "actions": [
+            "optimize_accuracy",
+            "adjust_learning_rate"
+        ],
+        "success_rate": 0.85,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "resource_balancing",
+        "description": "Balance resource usage across components",
+        "conditions": [
+            "any(v > 0.9 for v in state.get('resource_usage', {}).values())",
+            "state.get('optimization_count', 0) < 5"
+        ],
+        "actions": [
+            "balance_resources",
+            "redistribute_load"
+        ],
+        "success_rate": 0.8,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "knowledge_optimization",
+        "description": "Optimize knowledge base when inefficiencies are detected",
+        "conditions": [
+            "state.get('knowledge_size', 0) > 1000",
+            "state.get('query_latency', 0) > 0.5"
+        ],
+        "actions": [
+            "optimize_knowledge_base",
+            "prune_unused_rules"
+        ],
+        "success_rate": 0.9,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "communication_optimization",
+        "description": "Optimize inter-agent communication patterns",
+        "conditions": [
+            "state.get('message_queue_size', 0) > 100",
+            "state.get('communication_latency', 0) > 0.2"
+        ],
+        "actions": [
+            "optimize_communication",
+            "batch_messages"
+        ],
+        "success_rate": 0.85,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "error_recovery",
+        "description": "Recover from system errors and inconsistencies",
+        "conditions": [
+            "state.get('error_count', 0) > 10",
+            "state.get('system_health', 1.0) < 0.8"
+        ],
+        "actions": [
+            "analyze_errors",
+            "apply_recovery_strategy"
+        ],
+        "success_rate": 0.75,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "performance_tuning",
+        "description": "Fine-tune system performance parameters",
+        "conditions": [
+            "state.get('performance_score', 1.0) < 0.8",
+            "state.get('optimization_count', 0) < 5"
+        ],
+        "actions": [
+            "analyze_bottlenecks",
+            "tune_parameters"
+        ],
+        "success_rate": 0.9,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "cache_optimization",
+        "description": "Optimize caching strategies",
+        "conditions": [
+            "state.get('cache_hit_rate', 1.0) < 0.7",
+            "state.get('cache_size', 0) > 1000"
+        ],
+        "actions": [
+            "analyze_cache_usage",
+            "adjust_cache_strategy"
+        ],
+        "success_rate": 0.9,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    },
+    {
+        "name": "learning_optimization",
+        "description": "Optimize learning and adaptation mechanisms",
+        "conditions": [
+            "state.get('learning_rate', 0.001) < 0.0001",
+            "state.get('training_loss', 0) > 0.5"
+        ],
+        "actions": [
+            "analyze_learning_progress",
+            "adjust_learning_parameters"
+        ],
+        "success_rate": 0.85,
+        "usage_count": 0,
+        "avg_processing_time": 0.0
+    }
+] 

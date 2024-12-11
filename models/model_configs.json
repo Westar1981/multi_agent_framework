@@ -1,0 +1,46 @@
+{
+    "code_analyzer": {
+        "name": "code_analyzer",
+        "type": "CODE",
+        "pretrained_path": "microsoft/codebert-base",
+        "config": {
+            "max_length": 512,
+            "num_labels": 5,
+            "hidden_size": 768,
+            "num_attention_heads": 12
+        }
+    },
+    "knowledge_graph": {
+        "name": "knowledge_graph",
+        "type": "KNOWLEDGE",
+        "config": {
+            "in_dim": 256,
+            "hidden_dim": 512,
+            "out_dim": 256,
+            "num_layers": 2,
+            "dropout": 0.1
+        }
+    },
+    "language_model": {
+        "name": "language_model",
+        "type": "LANGUAGE",
+        "pretrained_path": "roberta-base",
+        "config": {
+            "max_length": 512,
+            "hidden_size": 768,
+            "num_attention_heads": 12,
+            "intermediate_size": 3072
+        }
+    },
+    "meta_learner": {
+        "name": "meta_learner",
+        "type": "META",
+        "config": {
+            "input_size": 256,
+            "hidden_size": 512,
+            "output_size": 256,
+            "num_layers": 3,
+            "learning_rate": 0.001
+        }
+    }
+} 

@@ -1,0 +1,37 @@
+{
+    "service_name": "multi_agent_framework",
+    "deployment_environment": "development",
+    "jaeger": {
+        "agent": {
+            "host": "localhost",
+            "port": 6831
+        },
+        "collector": {
+            "endpoint": "http://localhost:14268/api/traces"
+        }
+    },
+    "instrumentation": {
+        "aiohttp_client": true,
+        "redis": true,
+        "requests": true
+    },
+    "resource_attributes": {
+        "service.namespace": "multi_agent_framework",
+        "service.instance.id": "${HOSTNAME}",
+        "deployment.environment": "${DEPLOYMENT_ENV}"
+    },
+    "span_processor": {
+        "type": "batch",
+        "max_queue_size": 2048,
+        "batch_timeout_secs": 5,
+        "max_export_batch_size": 512
+    },
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s %(levelname)s [%(name)s] [%(trace_id)s] %(message)s"
+    },
+    "metrics": {
+        "enabled": true,
+        "interval_secs": 15
+    }
+} 
