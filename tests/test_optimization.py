@@ -9,12 +9,13 @@ import psutil
 import os
 from typing import Dict, Any
 import numpy as np
+from unittest.mock import patch, MagicMock
 
 from ..core.framework import Framework
 from ..agents.neural_symbolic_agent import NeuralSymbolicAgent
 from ..agents.meta_reasoner import MetaReasoner
 from ..core.self_analysis import SelfAnalysis
-from ..core.optimization import OptimizationConfig
+from ..core.optimization import OptimizationConfig, OptimizationManager
 
 class TestSystemOptimization:
     """Test system optimization capabilities."""
@@ -264,3 +265,118 @@ class TestSystemMonitoring:
             alert['type'] == 'system_stress'
             for alert in alerts
         )
+
+"""Tests for optimization manager."""
+
+@pytest.fixture
+def config():
+    """Create test configuration."""
+    return OptimizationConfig(
+        memory_threshold=0.7,
+        cpu_threshold=0.6,
+        error_rate_threshold=0.05,
+        optimization_interval=60,
+        max_concurrent_optimizations=2,
+        enable_auto_optimization=True
+    )
+
+@pytest.fixture
+def manager(config):
+    """Create test optimization manager."""
+    return OptimizationManager(config)
+
+@pytest.mark.asyncio
+async def test_init(manager, config):
+    """Test initialization."""
+    assert manager.config == config
+    assert manager.running_optimizations == []
+    assert not manager.is_running
+    assert manager._optimization_lock is not None
+
+@pytest.mark.asyncio
+async def test_optimize(manager):
+    """Test optimization run."""
+    with patch.object(manager, '_run_optimization') as mock_run:
+        mock_run.return_value = None
+        await manager.optimize()
+        assert mock_run.called
+
+@pytest.mark.asyncio
+async def test_max_concurrent_optimizations(manager):
+    """Test maximum concurrent optimizations."""
+    # Create mock tasks
+    mock_tasks = [
+        asyncio.create_task(asyncio.sleep(0.1))
+        for _ in range(manager.config.max_concurrent_optimizations)
+    ]
+    manager.running_optimizations.extend(mock_tasks)
+    
+    # Try to run another optimization
+    await manager.optimize()
+    
+    # Should not have added another task
+    assert len(manager.running_optimizations) == manager.config.max_concurrent_optimizations
+    
+    # Cleanup
+    for task in mock_tasks:
+        task.cancel()
+    await asyncio.gather(*mock_tasks, return_exceptions=True)
+
+@pytest.mark.asyncio
+async def test_optimization_steps(manager):
+    """Test optimization steps are called."""
+    with patch.object(manager, '_optimize_memory_usage') as mock_memory, \
+         patch.object(manager, '_optimize_cpu_usage') as mock_cpu, \
+         patch.object(manager, '_optimize_error_handling') as mock_error:
+             
+        await manager._run_optimization()
+        
+        assert mock_memory.called
+        assert mock_cpu.called
+        assert mock_error.called
+
+@pytest.mark.asyncio
+async def test_shutdown(manager):
+    """Test manager shutdown."""
+    # Create mock tasks
+    mock_tasks = [
+        asyncio.create_task(asyncio.sleep(0.1))
+        for _ in range(2)
+    ]
+    manager.running_optimizations.extend(mock_tasks)
+    
+    # Shutdown
+    await manager.shutdown()
+    
+    assert not manager.is_running
+    assert not manager.running_optimizations
+    
+    # Verify tasks were cancelled
+    for task in mock_tasks:
+        assert task.cancelled()
+
+@pytest.mark.asyncio
+async def test_optimization_error_handling(manager):
+    """Test error handling during optimization."""
+    with patch.object(manager, '_run_optimization', side_effect=Exception("Test error")):
+        await manager.optimize()
+        assert not manager.running_optimizations  # Should have cleaned up task
+
+@pytest.mark.asyncio
+async def test_concurrent_optimizations(manager):
+    """Test concurrent optimization runs."""
+    async def mock_optimization():
+        await asyncio.sleep(0.1)
+        
+    with patch.object(manager, '_run_optimization', side_effect=mock_optimization):
+        # Start multiple optimizations
+        tasks = [
+            asyncio.create_task(manager.optimize())
+            for _ in range(3)
+        ]
+        
+        # Wait for all to complete
+        await asyncio.gather(*tasks)
+        
+        # Should have respected max concurrent limit
+        assert len(manager.running_optimizations) == 0

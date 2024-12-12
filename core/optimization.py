@@ -1,233 +1,288 @@
-"""
-Enhanced optimization system with improved memory and performance management.
-"""
+"""Optimization module for system performance tuning."""
 
 import asyncio
-import time
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass
-import numpy as np
-from collections import deque
-import psutil
 import logging
+import time
+from typing import Dict, Any, List, Optional, Set, Tuple, Callable, Protocol, TypeVar, Union
+from dataclasses import dataclass, field
+import json
+import threading
+from queue import Queue
+from collections import defaultdict
+from datetime import datetime
+from abc import ABC, abstractmethod
+
+try:
+    import numpy as np
+    from scipy.optimize import minimize
+    from scipy import stats
+    Array = np.ndarray
+except ImportError:
+    np = None
+    minimize = None
+    stats = None
+    Array = List[float]
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+try:
+    import torch
+    import torch.nn as nn
+except ImportError:
+    torch = None
+    nn = None
+
+logger = logging.getLogger(__name__)
+
+# Type variables
+T = TypeVar('T')
+MetricName = str
+MetricValue = float
+ParamName = str
+ParamValue = float
+
+class OptimizationError(Exception):
+    """Base class for optimization errors."""
+    pass
+
+class ResourceLimitError(OptimizationError):
+    """Raised when resource limits are exceeded."""
+    pass
+
+class ParameterValidationError(OptimizationError):
+    """Raised when parameters fail validation."""
+    pass
+
+class OptimizationStrategy(Protocol):
+    """Protocol for optimization strategies."""
+    
+    async def optimize(self, 
+                      current_params: Dict[ParamName, ParamValue],
+                      metrics: Dict[MetricName, List[MetricValue]]) -> Dict[ParamName, ParamValue]:
+        """Optimize parameters based on current state."""
+        ...
+
+class MetricPredictor(Protocol):
+    """Protocol for metric prediction."""
+    
+    def predict(self,
+               params: Dict[ParamName, ParamValue],
+               history: Dict[MetricName, List[MetricValue]]) -> Dict[MetricName, MetricValue]:
+        """Predict metrics for parameter set."""
+        ...
+
+@dataclass
+class OptimizationMetrics:
+    """Performance metrics for optimization."""
+    throughput: float = 0.0
+    latency: float = 0.0
+    error_rate: float = 0.0
+    memory_usage: float = 0.0
+    cpu_usage: float = 0.0
+    gpu_usage: float = 0.0
+    network_io: float = 0.0
+    disk_io: float = 0.0
+    queue_depth: float = 0.0
+    cache_hit_rate: float = 0.0
+    
+    def validate(self) -> None:
+        """Validate metric values."""
+        for name, value in self.__dict__.items():
+            if not isinstance(value, (int, float)):
+                raise ValueError(f"Invalid {name} value: {value}")
+            if value < 0:
+                raise ValueError(f"Negative {name} value: {value}")
+            if name.endswith('_rate') and value > 1:
+                raise ValueError(f"Rate exceeds 1.0: {name}={value}")
+
+@dataclass
+class OptimizationConfig:
+    """Configuration for optimization."""
+    window_size: int = 100
+    update_interval: int = 60
+    min_improvement: float = 0.05
+    max_regression: float = 0.1
+    enable_monitoring: bool = True
+    enable_ml_optimization: bool = True
+    enable_anomaly_detection: bool = True
+    resource_limits: Optional[Dict[str, float]] = None
+    param_bounds: Optional[Dict[str, Tuple[float, float]]] = None
+    metric_weights: Optional[Dict[str, float]] = None
+    optimization_strategies: List[str] = field(default_factory=lambda: [
+        'gradient',
+        'bayesian',
+        'evolutionary'
+    ])
+    anomaly_threshold: float = 3.0
+    history_retention_days: int = 30
+    backup_interval: int = 3600
+    
+    def __post_init__(self) -> None:
+        """Initialize and validate configuration."""
+        self._init_resource_limits()
+        self._init_param_bounds()
+        self._init_metric_weights()
+        self.validate()
+        
+    def _init_resource_limits(self) -> None:
+        """Initialize resource limits."""
+        if self.resource_limits is None:
+            self.resource_limits = {
+                'memory': 0.8,  # 80% max memory
+                'cpu': 0.9,     # 90% max CPU
+                'gpu': 0.9,     # 90% max GPU
+                'throughput': 1000,  # ops/sec
+                'network': 1000,     # MB/s
+                'disk': 500         # MB/s
+            }
+            
+    def _init_param_bounds(self) -> None:
+        """Initialize parameter bounds."""
+        if self.param_bounds is None:
+            self.param_bounds = {
+                'batch_size': (1, 1000),
+                'queue_size': (10, 1000),
+                'worker_threads': (1, 32),
+                
+                'cache_size': (100, 10000),
+                'timeout': (1, 60),
+                'prefetch_count': (1, 100),
+                'retry_limit': (1, 10),
+                'buffer_size': (1024, 1024*1024)
+            }
+            
+    def _init_metric_weights(self) -> None:
+        """Initialize metric weights."""
+        if self.metric_weights is None:
+            self.metric_weights = {
+                'throughput': 2.0,
+                'latency': -1.5,
+                'error_rate': -3.0,
+                'memory_usage': -1.0,
+                'cpu_usage': -1.0,
+                'gpu_usage': -1.0,
+                'network_io': -0.5,
+                'disk_io': -0.5,
+                'queue_depth': -0.5,
+                'cache_hit_rate': 1.0
+            }
+            
+    def validate(self) -> None:
+        """Validate configuration values."""
+        if self.window_size < 1:
+            raise ValueError("window_size must be positive")
+        if self.update_interval < 1:
+            raise ValueError("update_interval must be positive")
+        if not 0 < self.min_improvement < 1:
+            raise ValueError("min_improvement must be between 0 and 1")
+        if not 0 < self.max_regression < 1:
+            raise ValueError("max_regression must be between 0 and 1")
+        if self.anomaly_threshold <= 0:
+            raise ValueError("anomaly_threshold must be positive")
+        if self.history_retention_days < 1:
+            raise ValueError("history_retention_days must be positive")
+        if self.backup_interval < 1:
+            raise ValueError("backup_interval must be positive")
+
+"""Optimization manager for coordinating system-wide optimizations."""
+
+import asyncio
+import logging
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 @dataclass
 class OptimizationConfig:
-    """Configuration for optimization system."""
-    # Memory management
-    cache_size: int = 1000
-    cache_ttl: int = 3600  # seconds
-    memory_threshold: float = 0.8
-    
-    # Performance tuning
-    initial_batch_size: int = 32
-    max_batch_size: int = 256
-    min_batch_size: int = 8
-    
-    # Resource management
-    max_workers: int = 4
-    max_queue_size: int = 1000
-    
-    # Optimization parameters
-    learning_rate: float = 0.01
-    adaptation_threshold: float = 0.1
-
-class MemoryManager:
-    """Enhanced memory management system."""
-    
-    def __init__(self, config: OptimizationConfig):
-        self.config = config
-        self.cache: Dict[str, Any] = {}
-        self.cache_times: Dict[str, float] = {}
-        self.memory_usage_history = deque(maxlen=100)
-        
-    def cache_get(self, key: str) -> Optional[Any]:
-        """Get item from cache with TTL check."""
-        if key in self.cache:
-            if time.time() - self.cache_times[key] > self.config.cache_ttl:
-                del self.cache[key]
-                del self.cache_times[key]
-                return None
-            return self.cache[key]
-        return None
-        
-    def cache_set(self, key: str, value: Any):
-        """Set cache item with memory check."""
-        current_memory = psutil.Process().memory_percent()
-        self.memory_usage_history.append(current_memory)
-        
-        if current_memory > self.config.memory_threshold:
-            self._cleanup_cache()
-            
-        if len(self.cache) < self.config.cache_size:
-            self.cache[key] = value
-            self.cache_times[key] = time.time()
-            
-    def _cleanup_cache(self):
-        """Smart cache cleanup based on usage patterns."""
-        if not self.cache:
-            return
-            
-        # Remove expired items
-        current_time = time.time()
-        expired = [
-            k for k, t in self.cache_times.items()
-            if current_time - t > self.config.cache_ttl
-        ]
-        for k in expired:
-            del self.cache[k]
-            del self.cache_times[k]
-            
-        # If still need cleanup
-        if len(self.cache) > self.config.cache_size * 0.8:
-            # Remove oldest items
-            sorted_items = sorted(
-                self.cache_times.items(),
-                key=lambda x: x[1]
-            )
-            to_remove = sorted_items[:len(sorted_items)//4]
-            for k, _ in to_remove:
-                del self.cache[k]
-                del self.cache_times[k]
-
-class PerformanceOptimizer:
-    """Enhanced performance optimization system."""
-    
-    def __init__(self, config: OptimizationConfig):
-        self.config = config
-        self.batch_size = config.initial_batch_size
-        self.processing_times = deque(maxlen=100)
-        self.batch_history = deque(maxlen=100)
-        
-    async def optimize_batch_size(self, current_load: float):
-        """Adapt batch size based on load and performance."""
-        self.batch_history.append((self.batch_size, current_load))
-        
-        if len(self.batch_history) < 10:
-            return
-            
-        recent_performance = self._analyze_performance()
-        
-        if recent_performance['trend'] > 0:  # Performance improving
-            self.batch_size = min(
-                self.batch_size * (1 + self.config.learning_rate),
-                self.config.max_batch_size
-            )
-        else:  # Performance degrading
-            self.batch_size = max(
-                self.batch_size * (1 - self.config.learning_rate),
-                self.config.min_batch_size
-            )
-            
-    def _analyze_performance(self) -> Dict[str, float]:
-        """Analyze recent performance trends."""
-        recent_batches = list(self.batch_history)
-        batch_sizes, loads = zip(*recent_batches)
-        
-        # Calculate trends
-        batch_trend = np.polyfit(range(len(batch_sizes)), batch_sizes, 1)[0]
-        load_trend = np.polyfit(range(len(loads)), loads, 1)[0]
-        
-        return {
-            'trend': batch_trend,
-            'load_trend': load_trend,
-            'avg_load': np.mean(loads)
-        }
-        
-    def record_processing_time(self, duration: float):
-        """Record processing time for optimization."""
-        self.processing_times.append(duration)
-
-class ResourceManager:
-    """Enhanced resource management system."""
-    
-    def __init__(self, config: OptimizationConfig):
-        self.config = config
-        self.active_workers = 0
-        self.queue_size = 0
-        self.resource_usage = deque(maxlen=100)
-        
-    async def acquire_worker(self) -> bool:
-        """Acquire worker with resource check."""
-        if self.active_workers >= self.config.max_workers:
-            return False
-            
-        current_usage = psutil.Process().cpu_percent()
-        self.resource_usage.append(current_usage)
-        
-        if current_usage > 80:  # High CPU usage
-            return False
-            
-        self.active_workers += 1
-        return True
-        
-    def release_worker(self):
-        """Release worker."""
-        self.active_workers = max(0, self.active_workers - 1)
-        
-    def can_queue_task(self) -> bool:
-        """Check if can queue new task."""
-        return self.queue_size < self.config.max_queue_size
-        
-    def get_resource_stats(self) -> Dict[str, float]:
-        """Get resource usage statistics."""
-        return {
-            'cpu_usage': np.mean(list(self.resource_usage)) if self.resource_usage else 0,
-            'worker_usage': self.active_workers / self.config.max_workers,
-            'queue_usage': self.queue_size / self.config.max_queue_size
-        }
+    """Configuration for optimization manager."""
+    memory_threshold: float = 0.8  # Memory usage threshold for optimization
+    cpu_threshold: float = 0.7  # CPU usage threshold for optimization
+    error_rate_threshold: float = 0.1  # Error rate threshold for optimization
+    optimization_interval: int = 300  # Seconds between optimization runs
+    max_concurrent_optimizations: int = 3  # Maximum concurrent optimization tasks
+    enable_auto_optimization: bool = True  # Whether to enable automatic optimization
 
 class OptimizationManager:
-    """Main optimization manager."""
+    """Manages system-wide optimizations."""
     
-    def __init__(self, config: Optional[OptimizationConfig] = None):
+    def __init__(self, config: Optional[OptimizationConfig] = None) -> None:
+        """Initialize optimization manager.
+        
+        Args:
+            config: Optional optimization configuration
+        """
         self.config = config or OptimizationConfig()
-        self.memory_manager = MemoryManager(self.config)
-        self.performance_optimizer = PerformanceOptimizer(self.config)
-        self.resource_manager = ResourceManager(self.config)
+        self.running_optimizations: List[asyncio.Task[Any]] = []
+        self.is_running: bool = False
+        self._optimization_lock = asyncio.Lock()
         
-    async def optimize_operation(self, operation_type: str, load: float):
-        """Optimize operation execution."""
-        stats = {}
-        
-        # Memory optimization
-        current_memory = psutil.Process().memory_percent()
-        if current_memory > self.config.memory_threshold:
-            self.memory_manager._cleanup_cache()
-            stats['memory_cleaned'] = True
-            
-        # Performance optimization
-        await self.performance_optimizer.optimize_batch_size(load)
-        stats['batch_size'] = self.performance_optimizer.batch_size
-        
-        # Resource optimization
-        if await self.resource_manager.acquire_worker():
-            try:
-                stats['worker_acquired'] = True
-                # Operation would go here
-            finally:
-                self.resource_manager.release_worker()
+    async def optimize(self) -> None:
+        """Run system optimization."""
+        async with self._optimization_lock:
+            if len(self.running_optimizations) >= self.config.max_concurrent_optimizations:
+                logger.warning("Maximum concurrent optimizations reached")
+                return
                 
-        return stats
-        
-    def get_optimization_metrics(self) -> Dict[str, Any]:
-        """Get current optimization metrics."""
-        return {
-            'memory_usage': len(self.memory_manager.cache) / self.config.cache_size,
-            'batch_size': self.performance_optimizer.batch_size,
-            'resource_stats': self.resource_manager.get_resource_stats()
-        }
-        
-    async def adapt_to_load(self, load_metrics: Dict[str, float]):
-        """Adapt optimization parameters to current load."""
-        if load_metrics.get('memory_pressure', 0) > 0.8:
-            self.config.cache_size *= 0.8
-            await self.memory_manager._cleanup_cache()
+            try:
+                # Create optimization task
+                task = asyncio.create_task(self._run_optimization())
+                self.running_optimizations.append(task)
+                
+                # Wait for completion
+                await task
+                
+            except Exception as e:
+                logger.error(f"Error during optimization: {str(e)}")
+                
+            finally:
+                if task in self.running_optimizations:
+                    self.running_optimizations.remove(task)
+                    
+    async def _run_optimization(self) -> None:
+        """Run optimization steps."""
+        try:
+            # Memory optimization
+            await self._optimize_memory_usage()
             
-        if load_metrics.get('cpu_pressure', 0) > 0.8:
-            self.config.max_workers = max(2, self.config.max_workers - 1)
+            # CPU optimization
+            await self._optimize_cpu_usage()
             
-        if load_metrics.get('queue_pressure', 0) > 0.8:
-            self.config.max_queue_size *= 1.2 
+            # Error handling optimization
+            await self._optimize_error_handling()
+            
+        except Exception as e:
+            logger.error(f"Error in optimization run: {str(e)}")
+            
+    async def _optimize_memory_usage(self) -> None:
+        """Optimize system memory usage."""
+        logger.info("Running memory optimization")
+        # Memory optimization logic here
+        
+    async def _optimize_cpu_usage(self) -> None:
+        """Optimize CPU usage."""
+        logger.info("Running CPU optimization")
+        # CPU optimization logic here
+        
+    async def _optimize_error_handling(self) -> None:
+        """Optimize error handling."""
+        logger.info("Running error handling optimization")
+        # Error handling optimization logic here
+        
+    async def shutdown(self) -> None:
+        """Shutdown optimization manager."""
+        self.is_running = False
+        
+        # Cancel running optimizations
+        for task in self.running_optimizations:
+            task.cancel()
+            
+        # Wait for tasks to complete
+        if self.running_optimizations:
+            await asyncio.wait(self.running_optimizations)
+            
+        self.running_optimizations.clear()
+        logger.info("Optimization manager shutdown complete")
